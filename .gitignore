@@ -5,6 +5,7 @@
 
 # ansible variables
 group_vars/all.yml
+inventory/hosts.ini
 *.retry
 
 # go binaries & build artifacts
