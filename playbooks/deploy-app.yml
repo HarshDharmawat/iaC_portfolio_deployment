@@ -1,0 +1,41 @@
+---
+- name: configure server and deploy app
+  hosts: portfolio_servers
+  become: yes # this tells ansible to run everything as 'sudo'
+  gather_facts: yes
+
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: install docker and aws cli
+      apt:
+        name: 
+          - docker.io
+          - awscli
+        state: present
+        update_cache: yes
+
+    - name: ensure docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: log into AWS ECR
+      shell: "aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ ecr_url }}"
+
+    - name: stop existing container (if running)
+      shell: "docker stop portfolio-api || true"
+      
+    - name: remove existing container (if exists)
+      shell: "docker rm portfolio-api || true"
+
+    - name: pull latest image from ECR
+      shell: "docker pull {{ ecr_url }}:latest"
+
+    - name: run the new container on port 80
+      shell: "docker run -d -p 80:8080 --name portfolio-api {{ ecr_url }}:latest"
+
+
+# ansible-playbook -i inventory/hosts.ini playbooks/deploy-app.yml

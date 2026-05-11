@@ -1,0 +1,18 @@
+# ssh key & secret 
+*.pem
+*.key
+.env
+
+# ansible variables
+group_vars/all.yml
+*.retry
+
+# go binaries & build artifacts
+portfolio/portfolio
+portfolio/main
+portfolio/*.exe
+
+# os & ide junk
+.DS_Store
+.vscode/
+.idea/

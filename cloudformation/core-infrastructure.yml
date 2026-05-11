@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Portfolio API Infrastructure: ECR, IAM, Security Group, and EC2'
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+
+Resources:
+  # 1. THE ECR REPOSITORY
+  PortfolioECRRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: myapp-repo
+
+  # 2. THE IAM ROLE
+  EC2ECRPullRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2ECRPullRole
+
+  # 3. THE SECURITY GROUP
+  PortfolioSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH, HTTP, HTTPS, and App Port
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+
+  # 4. THE EC2 INSTANCE
+  PortfolioServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      # Using standard Ubuntu AMI for eu-north-1 (Stockholm)
+      ImageId: ami-0914547665e6a707c
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroups:
+        - !Ref PortfolioSecurityGroup
+      Tags:
+        - Key: Name
+          Value: automated-portfolio-server
+
+Outputs:
+  ServerPublicIP:
+    Description: The Public IP of your new EC2 Instance
+    Value: !GetAtt PortfolioServer.PublicIp
+  ECRRepositoryUri:
+    Description: The URL of your new ECR Repository
+    Value: !GetAtt PortfolioECRRepo.RepositoryUri
+
+
+# ansible-playbook playbooks/deploy-aws-infra.yml

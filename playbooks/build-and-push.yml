@@ -1,0 +1,28 @@
+---
+- name: Build and Push Docker Image to ECR
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - ../group_vars/all.yml
+  vars:
+    app_directory: "portfolio"
+
+  tasks:
+    - name: Build the Docker image locally
+      shell: "docker build -t portfolio-api:latest ."
+      args:
+        chdir: "{{ playbook_dir }}/../portfolio"
+        
+    - name: Log into AWS ECR
+      shell: "aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ ecr_url }}"
+
+    - name: Tag the Docker image for ECR
+      shell: "docker tag portfolio-api:latest {{ ecr_url }}:latest"
+
+    - name: Push the image to AWS ECR
+      shell: "docker push {{ ecr_url }}:latest"
+
+
+# ansible-playbook -i inventory/hosts.ini playbooks/build-and-psuh.yml

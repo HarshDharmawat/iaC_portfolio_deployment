@@ -1,0 +1,17 @@
+# ignore git history
+.git
+.gitignore
+
+# ignore local Go modules cache and binaries
+vendor/
+*.exe
+*.test
+bin/
+
+# ignore markdown or documentation
+*.md
+README.md
+
+# double protection against secrets getting into the container
+.env
+*.pem

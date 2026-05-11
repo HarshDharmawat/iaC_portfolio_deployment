@@ -1,0 +1,26 @@
+---
+- name: Deploy Portfolio Infra to AWS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: cloudformation stack
+      amazon.aws.cloudformation:
+        stack_name: "{{ stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        template: "../cloudformation/core-infrastructure.yml"
+        template_parameters:
+          KeyName: "{{ key_pair_name }}"
+          InstanceType: "{{ instance_type }}"
+      register: stack_output
+
+    - name: Infra details
+      debug:
+        msg:
+          - "Server IP: {{ stack_output.stack_outputs.ServerPublicIP }}"
+          - "ECR Repo: {{ stack_output.stack_outputs.ECRRepositoryUri }}"
