@@ -10,8 +10,6 @@ COPY . .
 # this guarantees it runs perfectly on ultra minimal environments
 RUN CGO_ENABLED=0 go build -o portfolio .
 
-
-
 # we start fresh with a tiny, 5MB alpine Linux image
 FROM alpine:latest
 
