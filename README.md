@@ -27,7 +27,9 @@ The deployment process is broken down into three automated playbooks:
 
 ```text
 ├── cloudformation/
-│   └── core-infrastructure.yml    # AWS resource definitions
+│   └── core-infrastructure.yml     # AWS resource definitions
+    └── loadbalancer.yml            # Traefik load balancer definition
+    └── observabilityinfra.yml      # Prometheus and Grafana defition
 ├── group_vars/
 │   └── all.example.yml            # Dummy variable templates
 ├── inventory/
@@ -36,6 +38,8 @@ The deployment process is broken down into three automated playbooks:
 │   ├── deploy-aws-infra.yml       # Provisions AWS infrastructure
 │   ├── build-and-push.yml         # Builds & pushes Docker image to ECR
 │   └── deploy-app.yml             # Pulls and runs image on EC2
+|   └── deploy-lb.yml              # Deploys load balancer on an EC2 instance
+|   └── deploy-montoring.yml       # Deploys Promethus and Grafana on an EC2 instance
 └── portfolio/                     
     ├── Dockerfile                 # Multi-stage container instructions
     └── main.go                    # Application entry point
