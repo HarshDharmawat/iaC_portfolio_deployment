@@ -34,8 +34,8 @@ The deployment process is broken down into three automated playbooks:
 ```text
 ├── cloudformation/
 │   └── core-infrastructure.yml    # AWS resource definitions
-    └── loadbalancer.yml           # Traefik load balancer definition
-    └── observabilityinfra.yml     # Prometheus and Grafana defition
+|   └── loadbalancer.yml           # Traefik load balancer definition
+|   └── observabilityinfra.yml     # Prometheus and Grafana defition
 ├── group_vars/
 │   └── all.example.yml            # Dummy variable templates
 ├── inventory/
