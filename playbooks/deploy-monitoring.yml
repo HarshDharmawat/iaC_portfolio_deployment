@@ -1,0 +1,50 @@
+---
+- name: Deploy Grafana and Prometheus stack
+  hosts: monitoring_servers
+  become: yes
+  tasks:
+    - name: install docker and dependencies
+      apt:
+        name:
+          - docker.io
+          - python3-docker
+        state: present
+        update_cache: yes
+
+    - name: create prometheus config directory
+      file:
+        path: /etc/prometheus
+        state: directory
+
+    - name: generate prometheus configuration file
+      copy:
+        dest: /etc/prometheus/prometheus.yml
+        content: |
+          global:
+            scrape_interval: 10s
+
+          scrape_configs:
+            - job_name: 'traefik'
+              metrics_path: '/metrics'
+              static_configs:
+                - targets: ['{{ lb_private_ip }}:8080']
+
+    - name: Start Prometheus Container
+      community.docker.docker_container:
+        name: prometheus
+        image: prom/prometheus:v2.45.0
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "9090:9090"
+        volumes:
+          - /etc/prometheus:/etc/prometheus
+
+    - name: Start Grafana Container
+      community.docker.docker_container:
+        name: grafana
+        image: grafana/grafana:10.0.0
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "3000:3000"
