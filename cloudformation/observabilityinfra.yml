@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Observability Server (Prometheus & Grafana)
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select VPC for the observability stack
+
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Select subnet for the observability stack
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Select the key value pair
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+
+Resources:
+  MonitoringSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Open tcp port 3000 for the dashboard
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+
+  MonitoringServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      ImageId: ami-0914547665e6a707c
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref MonitoringSecurityGroup
+          SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: monitoring-server
+
+Outputs:
+  MonitoringPublicIp:
+    Description: Public IP to access Grafana UI
+    Value: !GetAtt MonitoringServer.PublicIp
