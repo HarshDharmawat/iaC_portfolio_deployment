@@ -1,5 +1,5 @@
-aws_region: "us-east-1"
+aws_region: "eu-north-1"
 stack_name: "portfolio-stack"
 key_pair_name: "your-key-name-here"
-instance_type: "t2.micro"
+instance_type: "t3.micro"
 ecr_url: "000000000000.dkr.ecr.eu-north-1.amazonaws.com/your-repo"
