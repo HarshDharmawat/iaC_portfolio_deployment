@@ -1,23 +1,41 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Portfolio API Infrastructure: ECR, IAM, Security Group, and EC2'
+Description: 'Stack 2: Core App Infrastructure (Go API & ECR)'
 
 Parameters:
+  LBStackName:
+    Type: String
+    Default: portfolio-lb-stack
+    Description: Name of your Load Balancer stack to import the SG from
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
   KeyName:
-    Description: Name of an existing EC2 KeyPair to enable SSH access
     Type: AWS::EC2::KeyPair::KeyName
   InstanceType:
-    Description: EC2 instance type
     Type: String
-    Default: t2.micro
+    Default: t3.micro
 
 Resources:
-  # 1. THE ECR REPOSITORY
-  PortfolioECRRepo:
-    Type: AWS::ECR::Repository
+  # 1. Application Security Group
+  PortfolioSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      RepositoryName: myapp-repo
+      GroupDescription: Security Group for Go App Server (Trusts LB only)
+      VPCId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0 # SSH access # should be changed to 'MY IP' after deployment.
+        # only allow port 8080 from the load balancer (LB)
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: 
+            Fn::ImportValue: !Sub "${LBStackName}-LBSecurityGroupId"
 
-  # 2. THE IAM ROLE
+  # 2. IAM Configuration
   EC2ECRPullRole:
     Type: AWS::IAM::Role
     Properties:
@@ -37,51 +55,38 @@ Resources:
       Roles:
         - !Ref EC2ECRPullRole
 
-  # 3. THE SECURITY GROUP
-  PortfolioSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+  # 3. ECR Repository 
+  PortfolioECRRepo:
+    Type: AWS::ECR::Repository
     Properties:
-      GroupDescription: Allow SSH, HTTP, HTTPS, and App Port
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
-          CidrIp: 0.0.0.0/0
+      RepositoryName: myapp-repo
 
-  # 4. THE EC2 INSTANCE
+  # 4. App EC2 Instance
   PortfolioServer:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      # Using standard Ubuntu AMI for eu-north-1 (Stockholm)
-      ImageId: ami-0914547665e6a707c
+      ImageId: ami-0914547665e6a707c # Stockholm (eu-north-1) Ubuntu AMI
       IamInstanceProfile: !Ref EC2InstanceProfile
-      SecurityGroups:
-        - !Ref PortfolioSecurityGroup
+      # assigning public ip to instances
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet: 
+            - !Ref PortfolioSecurityGroup
+          SubnetId: !Ref SubnetId
       Tags:
         - Key: Name
           Value: automated-portfolio-server
 
 Outputs:
   ServerPublicIP:
-    Description: The Public IP of your new EC2 Instance
     Value: !GetAtt PortfolioServer.PublicIp
+  AppPrivateIP:
+    Description: Private IP needed for Traefik to route traffic
+    Value: !GetAtt PortfolioServer.PrivateIp
   ECRRepositoryUri:
-    Description: The URL of your new ECR Repository
     Value: !GetAtt PortfolioECRRepo.RepositoryUri
 
-
-# ansible-playbook playbooks/deploy-aws-infra.yml
+    # for deployment command to be used: ansible-playbook cloudformation/core-infrastructure.yml

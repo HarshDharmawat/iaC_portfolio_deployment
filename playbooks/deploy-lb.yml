@@ -1,0 +1,68 @@
+---
+- name: Deploy Traefik Load Balancer
+  hosts: load_balancer
+  become: yes
+  tasks:
+    - name: Install Docker and Python dependencies
+      apt:
+        name: 
+          - docker.io
+          - python3-docker
+        state: present
+        update_cache: yes
+
+    - name: Create Traefik config directory
+      file:
+        path: /etc/traefik
+        state: directory
+
+    - name: Create Traefik Static Configuration (traefik.yml)
+      copy:
+        dest: /etc/traefik/traefik.yml
+        content: |
+          entryPoints:
+            web:
+              address: ":80"
+          api:
+            dashboard: true
+            insecure: true
+          # START BROADCASTING PROMETHEUS METRICS NATIVELY ON PORT 8080
+          metrics:
+            prometheus: {}
+          providers:
+            file:
+              filename: "/etc/traefik/dynamic.yml"
+              watch: true
+          accessLog: {}
+
+    - name: Create Traefik Dynamic Configuration (dynamic.yml)
+      copy:
+        dest: /etc/traefik/dynamic.yml
+        content: |
+          http:
+            routers:
+              portfolio-router:
+                rule: "PathPrefix(`/`)"
+                service: "portfolio-service"
+                entryPoints:
+                  - "web"
+            services:
+              portfolio-service:
+                loadBalancer:
+                  servers:
+                    - url: "http://{{ app_private_ip }}:8080"
+
+    - name: Start Traefik Container
+      community.docker.docker_container:
+        name: traefik
+        image: traefik:v2.10
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "80:80"
+          - "443:443"
+          - "8080:8080"
+        volumes:
+          - /etc/traefik:/etc/traefik
+
+# ansible-playbook -i inventory/hosts.ini playbooks/deploy-lb.yml

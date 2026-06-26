@@ -1,0 +1,58 @@
+name: Go API Enterprise CI/CD Pipeline
+
+# 1. THE TRIGGER
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'portfolio/**'
+
+# 2. THE VIRTUAL SERVER
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1 
+
+      - name: Install Ansible on GitHub Runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Provision SSH Key for EC2 Access
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/docker-engine-ec2.pem
+          chmod 400 ~/.ssh/docker-engine-ec2.pem
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+
+      - name: Hydrate Dynamic Ansible Inventory
+        run: |
+          cat <<EOF > inventory/hosts.ini
+          [local]
+          localhost ansible_connection=local
+
+          [portfolio_servers]
+          ${{ secrets.APP_SERVER_IP }}
+
+          [all:vars]
+          ansible_user=ubuntu
+          ansible_ssh_private_key_file=~/.ssh/docker-engine-ec2.pem
+          ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+          EOF
+
+      - name: Stage 1 - Build and Push Docker Image to ECR
+        run: ansible-playbook -i inventory/hosts.ini playbooks/build-and-push.yml
+
+      - name: Stage 2 - Deploy Application to AWS EC2
+        run: ansible-playbook -i inventory/hosts.ini playbooks/deploy-app.yml

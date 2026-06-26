@@ -24,3 +24,6 @@
         msg:
           - "Server IP: {{ stack_output.stack_outputs.ServerPublicIP }}"
           - "ECR Repo: {{ stack_output.stack_outputs.ECRRepositoryUri }}"
+
+
+# ansible-playbook -i inventory/hosts.ini playbooks/deploy-aws-infra.yml

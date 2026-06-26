@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Traefik Load Balancer (Edge)'
+
+Parameters:
+  VpcId:
+    Description: Select your Default VPC
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Description: Select a Subnet from your Default VPC
+    Type: AWS::EC2::Subnet::Id
+  KeyName:
+    Description: Name of your existing EC2 KeyPair (.pem key)
+    Type: AWS::EC2::KeyPair::KeyName
+  InstanceType:
+    Type: String
+    Default: t3.micro
+
+Resources:
+  # 1. traefik security group
+  LBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public Edge Access Ports for Traefik
+      VPCId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22 
+          CidrIp: 0.0.0.0/0 # SSH to app, change it to MY IP after deployment
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0 # HTTP port
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0 # HTTPS port
+
+  # 2. traefik ec2 instance
+  LoadBalancerServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      ImageId: ami-0914547665e6a707c # Stockholm (eu-north-1) Ubuntu AMI
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet: 
+            - !Ref LBSecurityGroup
+          SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: portfolio-traefik-lb
+
+Outputs:
+  LBSecurityGroupId:
+    Description: The ID of the Load Balancer Security Group
+    Value: !Ref LBSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-LBSecurityGroupId"
+  LoadBalancerPublicIp:
+    Value: !GetAtt LoadBalancerServer.PublicIp

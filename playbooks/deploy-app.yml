@@ -34,8 +34,7 @@
     - name: pull latest image from ECR
       shell: "docker pull {{ ecr_url }}:latest"
 
-    - name: run the new container on port 80
-      shell: "docker run -d -p 80:8080 --name portfolio-api {{ ecr_url }}:latest"
+    - name: run the new container on port 8080
+      shell: "docker run -d -p 8080:8080 --name portfolio-api {{ ecr_url }}:latest"
 
-
-# ansible-playbook -i inventory/hosts.ini playbooks/deploy-app.yml
+      # ansible-playbook -i inventory/hosts.ini playbooks/deploy-app.yml
