@@ -1,3 +1,9 @@
+
+![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+
 # AWS Infrastructure-as-Code & Go Deployment Pipeline
 
 An enterprise-grade, zero-touch deployment architecture for a containerized Go REST API. This project utilizes **Infrastructure as Code (IaC)** to provision AWS resources and **Ansible** to orchestrate a fully automated CI/CD deployment pipeline.
